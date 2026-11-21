@@ -1,0 +1,31 @@
+# Builds the mod and the bridge and runs the tests on every push and pull request.
+name: build
+on: [pull_request, push]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v6
+      - name: validate gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+      - name: setup jdk
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
+      - name: build and test
+        run: ./gradlew build
+      - name: upload mod jar
+        uses: actions/upload-artifact@v7
+        with:
+          name: fabric-mod
+          path: fabric-mod/build/libs/fluxerbridge-*.jar
+      - name: upload bridge
+        uses: actions/upload-artifact@v7
+        with:
+          name: bridge
+          path: bridge/build/distributions/

@@ -1,0 +1,19 @@
+{
+	"schemaVersion": 1,
+	"id": "fluxerbridge",
+	"version": "${version}",
+	"name": "Fluxer Bridge",
+	"description": "Bridges Minecraft server chat and events with Fluxer channels through the Fluxer bridge service.",
+	"authors": ["TESMP"],
+	"environment": "server",
+	"entrypoints": {
+		"server": ["dev.tesmp.fluxerbridge.mod.FluxerBridgeMod"]
+	},
+	"mixins": ["fluxerbridge.mixins.json"],
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

@@ -1,0 +1,25 @@
+# Example only: add the fluxer-bridge service to the compose file that already
+# runs your itzg/minecraft-server container. Both services must be on the same
+# Docker network (the default network of one compose file is enough).
+
+services:
+  minecraft:
+    image: itzg/minecraft-server
+    # ... your existing settings stay as they are ...
+    environment:
+      EULA: "TRUE"
+      TYPE: FABRIC
+      VERSION: "26.3"
+    volumes:
+      - ./data:/data          # put fluxerbridge-<version>.jar in ./data/mods/
+    ports:
+      - "25565:25565"
+
+  fluxer-bridge:
+    build: ./fluxer-minecraft-bridge   # path to a checkout of this repository
+    restart: unless-stopped
+    env_file: .env                     # FLUXER_TOKEN and TESMP_SECRET
+    volumes:
+      - ./fluxer-bridge/bridge.json:/config/bridge.json:ro
+    # No "ports:" on purpose. The mod reaches the bridge as ws://fluxer-bridge:8765
+    # over the internal Docker network, so nothing is exposed to the internet.

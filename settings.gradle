@@ -1,0 +1,21 @@
+pluginManagement {
+	repositories {
+		maven {
+			name = 'Fabric'
+			url = 'https://maven.fabricmc.net/'
+		}
+		mavenCentral()
+		gradlePluginPortal()
+	}
+}
+
+rootProject.name = 'fluxer-minecraft-bridge'
+
+include 'protocol'
+include 'bridge'
+
+// The Fabric mod pulls in Minecraft, which is large. The bridge Docker image
+// builds with -PbridgeOnly=true so it never has to download Minecraft.
+if (!providers.gradleProperty('bridgeOnly').isPresent()) {
+	include 'fabric-mod'
+}

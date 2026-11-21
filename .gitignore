@@ -1,0 +1,32 @@
+# gradle
+.gradle/
+build/
+out/
+classes/
+
+# IDEs
+.idea/
+*.iml
+.settings/
+.vscode/
+bin/
+.classpath
+.project
+*.launch
+
+# fabric dev run directory
+run/
+
+# secrets / local config - never commit these
+.env
+*.env.local
+bridge.json
+!docs/**/bridge.json
+config/fluxerbridge.json
+
+# misc
+*.DS_Store
+hs_err_*.log
+replay_*.log
+*.hprof
+*.jfr

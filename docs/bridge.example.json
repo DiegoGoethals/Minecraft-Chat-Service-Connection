@@ -1,0 +1,38 @@
+{
+  "fluxer": {
+    "instance": "https://fluxer.app",
+    "token": "${FLUXER_TOKEN}",
+    "ignoreBots": true,
+    "ignoreWebhooks": true
+  },
+  "listen": {
+    "host": "0.0.0.0",
+    "port": 8765
+  },
+  "servers": {
+    "tesmp": {
+      "secret": "${TESMP_SECRET}",
+      "displayName": "TESMP"
+    }
+  },
+  "links": [
+    {
+      "server": "tesmp",
+      "channelId": "000000000000000000",
+      "toFluxer": true,
+      "toMinecraft": true,
+      "tags": ["*"],
+      "style": "webhook",
+      "webhookName": "TESMP",
+      "avatarUrl": "https://mc-heads.net/avatar/{uuid}/64",
+      "chatFormat": "**[{server}] {author}:** {text}",
+      "eventFormat": "*{text}*",
+      "minecraftLabel": "Fluxer",
+      "offlineNotice": "The Minecraft server is offline right now, so this message was not delivered."
+    }
+  ],
+  "commands": {
+    "enabled": true,
+    "prefix": "!"
+  }
+}
