@@ -21,9 +21,12 @@ import java.util.regex.PatternSyntaxException;
  * which Fluxer channel it ends up in.
  */
 public final class ModConfig {
-	/** Where the bridge listens. In Docker, use the bridge container's service name. */
+	/**
+	 * Where the bridge listens: ws://host:port. In Docker, host is the bridge's
+	 * service or container name; port is listen.port in the bridge config.
+	 */
 	public String bridgeUrl = "ws://fluxer-bridge:8765";
-	/** Must match a key under "servers" in the bridge config. */
+	/** Any name for this server; must match a key under "servers" in the bridge config. */
 	public String serverId = "tesmp";
 	/** Must match servers.<serverId>.secret in the bridge config. */
 	public String secret = "";
@@ -47,6 +50,15 @@ public final class ModConfig {
 		public boolean deaths = false;
 		/** Advancement messages. */
 		public boolean advancements = false;
+
+		/** Text sent when the server has started (with serverStatus on). */
+		public String serverStartedMessage = "The server is online";
+		/** Text sent when the server is stopping (with serverStatus on). */
+		public String serverStoppingMessage = "The server is shutting down";
+		/** How /say is sent. Placeholders: {author} {text}. */
+		public String sayFormat = "[{author}] {text}";
+		/** How /me is sent. Placeholders: {author} {text}. */
+		public String emoteFormat = "* {author} {text}";
 	}
 
 	public static final class Receive {
@@ -113,7 +125,8 @@ public final class ModConfig {
 		try {
 			config = GSON.fromJson(Files.readString(path), ModConfig.class);
 		} catch (JsonParseException e) {
-			throw new IOException("config/fluxerbridge.json is not valid JSON: " + e.getMessage(), e);
+			throw new IOException("the file is not valid JSON: " + e.getMessage()
+					+ ". Fix it, or delete the file to have a fresh one created on the next start", e);
 		}
 		if (config == null) {
 			config = new ModConfig();
@@ -148,21 +161,26 @@ public final class ModConfig {
 	/** @return a problem that prevents connecting, or null when the config is usable */
 	public String problem() {
 		if (bridgeUrl == null || bridgeUrl.isBlank()) {
-			return "bridgeUrl is empty";
+			return "bridgeUrl is empty. Set it to the bridge's address, e.g. \"ws://fluxer-bridge:8765\"";
 		}
 		try {
-			String scheme = URI.create(bridgeUrl).getScheme();
+			URI uri = URI.create(bridgeUrl);
+			String scheme = uri.getScheme();
 			if (!"ws".equals(scheme) && !"wss".equals(scheme)) {
-				return "bridgeUrl must start with ws:// or wss://";
+				return "bridgeUrl must start with ws:// or wss://, e.g. \"ws://fluxer-bridge:8765\"";
+			}
+			if (uri.getHost() == null) {
+				return "bridgeUrl has no host name, e.g. \"ws://fluxer-bridge:8765\"";
 			}
 		} catch (IllegalArgumentException e) {
-			return "bridgeUrl is not a valid URL";
+			return "bridgeUrl \"" + bridgeUrl + "\" is not a valid URL, e.g. \"ws://fluxer-bridge:8765\"";
 		}
 		if (serverId == null || serverId.isBlank()) {
-			return "serverId is empty";
+			return "serverId is empty. Use the name this server has under \"servers\" in the bridge config";
 		}
 		if (secret == null || secret.isBlank()) {
-			return "secret is empty";
+			return "secret is empty. Use the same value as servers.<serverId>.secret in the bridge config "
+					+ "(or delete this file to generate a new one)";
 		}
 		return null;
 	}

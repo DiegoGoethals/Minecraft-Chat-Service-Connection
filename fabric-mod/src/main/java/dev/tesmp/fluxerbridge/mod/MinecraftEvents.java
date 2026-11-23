@@ -36,7 +36,11 @@ final class MinecraftEvents {
 			String author = source.getTextName();
 			String content = message.decoratedContent().getString();
 			boolean emote = params.chatType().is(ChatType.EMOTE_COMMAND);
-			String text = emote ? "* " + author + " " + content : "[" + author + "] " + content;
+			String format = emote ? cfg.send.emoteFormat : cfg.send.sayFormat;
+			if (format == null || format.isBlank()) {
+				format = emote ? "* {author} {text}" : "[{author}] {text}";
+			}
+			String text = format.replace("{author}", author).replace("{text}", content);
 			ServerPlayer player = source.getPlayer();
 			mod.sendEvent(EventKind.SAY, EventKind.TAG_SAY, author, player != null ? player.getStringUUID() : null, text);
 		});

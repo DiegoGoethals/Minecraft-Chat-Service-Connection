@@ -36,7 +36,8 @@ public final class Main {
 		LOG.info("Fluxer Minecraft Bridge {} starting, config: {}", Version.get(), configPath.toAbsolutePath());
 
 		if (!Files.exists(configPath)) {
-			LOG.error("Config file {} not found. Copy docs/bridge.example.json and fill it in.", configPath.toAbsolutePath());
+			LOG.error("Config file {} not found. Copy docs/bridge.example.json there and fill it in, "
+					+ "or point to another file with the BRIDGE_CONFIG environment variable or the first argument.", configPath.toAbsolutePath());
 			System.exit(2);
 		}
 		BridgeConfig config;
@@ -53,13 +54,16 @@ public final class Main {
 				.followRedirects(HttpClient.Redirect.NORMAL)
 				.build();
 
-		FluxerApi.Endpoints endpoints = retry("Fluxer discovery", () -> FluxerApi.discover(http, config.fluxer.instance));
+		FluxerApi.Endpoints endpoints = retry("Fluxer discovery at " + config.fluxer.instance
+				+ " (change fluxer.instance in the bridge config if this is the wrong address)",
+				() -> FluxerApi.discover(http, config.fluxer.instance));
 		FluxerApi api = new FluxerApi(http, endpoints.apiPublic(), config.fluxer.token);
 		JsonObject me;
 		try {
 			me = retry("Fluxer login", api::currentUser);
 		} catch (FluxerApi.FluxerException e) {
-			LOG.error("Fluxer refused the bot token: {}", e.getMessage());
+			LOG.error("Fluxer refused the bot token: {}. Check fluxer.token in {} (or the environment variable it reads).",
+					e.getMessage(), configPath.toAbsolutePath());
 			System.exit(3);
 			return;
 		}

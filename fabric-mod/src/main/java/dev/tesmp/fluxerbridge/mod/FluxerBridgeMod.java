@@ -42,7 +42,7 @@ public final class FluxerBridgeMod implements DedicatedServerModInitializer {
 		try {
 			config = ModConfig.load(configPath);
 		} catch (IOException e) {
-			LOG.error("Could not load {}: {}. The bridge stays off until it is fixed and reloaded.", configPath, e.getMessage());
+			LOG.error("Could not load {}: {}. The bridge stays off until you fix it and run /fluxerbridge reload.", configPath, e.getMessage());
 			config = null;
 		}
 
@@ -54,13 +54,13 @@ public final class FluxerBridgeMod implements DedicatedServerModInitializer {
 			connect();
 			ModConfig cfg = config;
 			if (cfg != null && cfg.send.serverStatus) {
-				sendEvent(EventKind.SERVER_START, EventKind.TAG_STATUS, null, null, "The server is online");
+				sendEvent(EventKind.SERVER_START, EventKind.TAG_STATUS, null, null, cfg.send.serverStartedMessage);
 			}
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(stopping -> {
 			ModConfig cfg = config;
 			if (cfg != null && cfg.send.serverStatus) {
-				sendEvent(EventKind.SERVER_STOP, EventKind.TAG_STATUS, null, null, "The server is shutting down");
+				sendEvent(EventKind.SERVER_STOP, EventKind.TAG_STATUS, null, null, cfg.send.serverStoppingMessage);
 			}
 			disconnect();
 			this.server = null;
@@ -103,6 +103,7 @@ public final class FluxerBridgeMod implements DedicatedServerModInitializer {
 		try {
 			loaded = ModConfig.load(configPath);
 		} catch (IOException e) {
+			LOG.error("Could not reload {}: {}", configPath, e.getMessage());
 			return e.getMessage();
 		}
 		disconnect();

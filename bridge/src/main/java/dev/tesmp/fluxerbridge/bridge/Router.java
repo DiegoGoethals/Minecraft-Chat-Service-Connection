@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,7 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class Router implements FluxerGateway.Listener {
 	private static final Logger LOG = LoggerFactory.getLogger("Router");
-	static final long OFFLINE_NOTICE_COOLDOWN_MS = 10 * 60_000;
 	private static final long STATUS_TIMEOUT_MS = 30_000;
 
 	private record PendingStatus(BridgeConfig.Link link, long createdAt) {
@@ -126,20 +124,20 @@ public final class Router implements FluxerGateway.Listener {
 		if (pending == null) {
 			return;
 		}
-		String server = TextFormat.escapeMarkdown(config.displayName(serverId));
 		List<String> players = status.players() == null ? List.of() : status.players();
-		String content;
-		if (players.isEmpty()) {
-			content = "**" + server + "** is online, but nobody is playing right now.";
-		} else {
-			List<String> names = new ArrayList<>();
-			for (String p : players) {
-				names.add(TextFormat.escapeMarkdown(p));
-			}
-			content = "**" + server + "** — " + players.size() + "/" + status.maxPlayers()
-					+ " online: " + String.join(", ", names);
+		List<String> names = new ArrayList<>();
+		for (String p : players) {
+			names.add(TextFormat.escapeMarkdown(p));
 		}
-		fluxer.post(pending.link(), content);
+		Map<String, String> values = Map.of(
+				"server", TextFormat.escapeMarkdown(config.displayName(serverId)),
+				"count", String.valueOf(players.size()),
+				"max", String.valueOf(status.maxPlayers()),
+				"players", String.join(", ", names));
+		String template = players.isEmpty() ? config.commands.playersNone : config.commands.playersOnline;
+		if (template != null && !template.isBlank()) {
+			fluxer.post(pending.link(), TextFormat.fill(template, values));
+		}
 	}
 
 	// ------------------------------------------------------ Fluxer -> Minecraft
@@ -223,8 +221,15 @@ public final class Router implements FluxerGateway.Listener {
 		if (prefix.isEmpty() || !trimmed.startsWith(prefix)) {
 			return false;
 		}
-		String command = trimmed.substring(prefix.length()).trim().toLowerCase(Locale.ROOT);
-		if (!command.equals("players") && !command.equals("online") && !command.equals("list")) {
+		String command = trimmed.substring(prefix.length()).trim();
+		boolean known = false;
+		for (String name : config.commands.players) {
+			if (name != null && !name.isBlank() && command.equalsIgnoreCase(name.trim())) {
+				known = true;
+				break;
+			}
+		}
+		if (!known) {
 			return false;
 		}
 		long now = System.currentTimeMillis();
@@ -236,7 +241,11 @@ public final class Router implements FluxerGateway.Listener {
 				pendingStatus.put(requestId, new PendingStatus(link, now));
 				mc.send(link.server, new Message.StatusRequest(requestId));
 			} else {
-				fluxer.post(link, "**" + TextFormat.escapeMarkdown(config.displayName(link.server)) + "** is offline.");
+				String template = config.commands.serverOffline;
+				if (template != null && !template.isBlank()) {
+					fluxer.post(link, TextFormat.fill(template,
+							Map.of("server", TextFormat.escapeMarkdown(config.displayName(link.server)))));
+				}
 			}
 		}
 		return true;
@@ -249,7 +258,7 @@ public final class Router implements FluxerGateway.Listener {
 		String key = link.channelId + "/" + link.server;
 		long now = System.currentTimeMillis();
 		Long last = offlineNoticeAt.get(key);
-		if (last != null && now - last < OFFLINE_NOTICE_COOLDOWN_MS) {
+		if (last != null && now - last < link.offlineNoticeCooldownMinutes * 60_000L) {
 			return;
 		}
 		offlineNoticeAt.put(key, now);

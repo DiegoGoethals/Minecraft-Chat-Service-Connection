@@ -59,12 +59,15 @@ final class BridgeCommand {
 		ModConfig cfg = mod.config();
 		String text;
 		if (cfg == null) {
-			text = "Fluxer bridge: config could not be loaded, see the server log";
+			text = "Fluxer bridge: config/fluxerbridge.json could not be loaded, see the server log, fix it and run /fluxerbridge reload";
 		} else if (mod.isConnected()) {
 			text = "Fluxer bridge: connected to " + cfg.bridgeUrl + " as \"" + cfg.serverId + "\"";
 		} else {
 			String problem = cfg.problem();
-			text = "Fluxer bridge: not connected" + (problem != null ? " (" + problem + ")" : ", retrying " + cfg.bridgeUrl);
+			text = problem != null
+					? "Fluxer bridge: not connected: " + problem + ". Edit config/fluxerbridge.json and run /fluxerbridge reload"
+					: "Fluxer bridge: not connected, retrying " + cfg.bridgeUrl
+							+ " (bridgeUrl in config/fluxerbridge.json; see the server log for the reason)";
 		}
 		ctx.getSource().sendSuccess(() -> Component.literal(text), false);
 		return mod.isConnected() ? 1 : 0;

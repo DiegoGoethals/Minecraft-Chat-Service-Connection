@@ -136,7 +136,8 @@ public final class FluxerOutbox implements Sinks.Fluxer {
 		} catch (Exception e) {
 			webhookUnavailable.add(key);
 			LOG.warn("Can't use a webhook in channel {} ({}). Posting as the bot instead. "
-					+ "Give the bot the Manage Webhooks permission and restart the bridge to fix this.", link.channelId, e.getMessage());
+					+ "Give the bot the Manage Webhooks permission and restart the bridge, "
+					+ "or set \"style\": \"bot\" on this link to always post as the bot.", link.channelId, e.getMessage());
 			return null;
 		}
 	}

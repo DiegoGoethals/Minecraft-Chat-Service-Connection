@@ -37,16 +37,22 @@ GitHub Actions also builds both on every push (see the workflow artifacts).
      "serverId": "tesmp",
      "secret": "6b49…",
      "send":    { "chat": true, "say": true, "datapack": true, "serverStatus": true,
-                  "joins": false, "deaths": false, "advancements": false },
+                  "joins": false, "deaths": false, "advancements": false,
+                  "serverStartedMessage": "The server is online",
+                  "serverStoppingMessage": "The server is shutting down",
+                  "sayFormat": "[{author}] {text}", "emoteFormat": "* {author} {text}" },
      "receive": { "enabled": true, "format": "&9[{origin}] &f{author}&7: &r{text}", "maxLength": 256 },
      "tellraw": { "enabled": false, "onlyEveryone": true, "patterns": [], "tag": "tellraw" }
    }
    ```
 
-   - `bridgeUrl`: `fluxer-bridge` is the Docker service name from step 4. Change it if you name the service differently.
+   - `bridgeUrl`: `ws://<host>:<port>` of the bridge. `fluxer-bridge` is the Docker service name from step 4 and `8765` is `listen.port` in `bridge.json`. Nothing about this is fixed: if your service or container has another name, or the bridge runs on another machine or port, put that here.
    - `secret`: copy it into `.env` as `TESMP_SECRET` (step 4).
    - `send.*`: what this server forwards. Joins, deaths and advancements are off by default.
+   - `send.serverStartedMessage` / `serverStoppingMessage` / `sayFormat` / `emoteFormat`: the texts sent for those events.
    - `receive.format`: how Fluxer messages look in game. `&` color codes work here.
+
+   Options added in a newer version of the mod aren't written into an existing file. Any option you leave out uses the default shown above, so copy in the ones you want to change.
 
    Players don't need the mod. It's marked server-only.
 
@@ -102,7 +108,13 @@ Next to your `docker-compose.yml`:
 | Route deaths to a separate channel | Add a second link with the same `server`, another `channelId` and `"tags": ["deaths"]`, and set the first link's `tags` to the rest (e.g. `["chat","say","status"]`) |
 | Add another Minecraft server | Install the mod there with a different `serverId`, then add it under `servers` and `links` in `bridge.json` |
 | Plain bot messages instead of webhooks | `"style": "bot"` on the link |
+| Use a webhook you made yourself | Set the link's `webhookName` to that webhook's name. The bridge reuses an existing webhook with that name (preferring one it created) and only creates one when none exists. |
 | One-way only | `toFluxer` / `toMinecraft` on the link |
+| Different bridge host, container name or port | `bridgeUrl` in `config/fluxerbridge.json`, plus `listen.port` in `bridge.json` for the port |
+| Server start/stop texts, `/say` and `/me` format | `send.serverStartedMessage`, `send.serverStoppingMessage`, `send.sayFormat`, `send.emoteFormat` in `config/fluxerbridge.json` |
+| Rename `!players` or change its replies | `commands.prefix`, `commands.players`, `commands.playersOnline`, `commands.playersNone`, `commands.serverOffline` in `bridge.json` |
+| Offline notice text or how often it's posted | `offlineNotice` (empty disables it) and `offlineNoticeCooldownMinutes` on the link |
+| Config file somewhere else | Pass its path as the first argument, or set `BRIDGE_CONFIG` |
 
 Routing tags sent by the mod: `chat`, `say`, `status` (server start/stop), `joins`, `deaths`, `advancements`, `datapack`, `tellraw`, plus any custom tag used with `/fluxerbridge sendto`.
 
@@ -111,7 +123,9 @@ Routing tags sent by the mod: `chat`, `say`, `status` (server start/stop), `join
 | Symptom | Cause |
 |---|---|
 | Bridge exits with "Fluxer refused the bot token" | Wrong `FLUXER_TOKEN`. Regenerate the token in Fluxer if needed. |
-| Bridge log: "Refused connection … wrong secret" | `TESMP_SECRET` doesn't match `secret` in the mod config |
-| Mod log: "Could not connect to bridge: … UnresolvedAddress / ConnectException" | The containers aren't on the same network, or the service name differs from `bridgeUrl` |
+| Bridge log: "Refused connection … wrong secret" | `servers.<id>.secret` in `bridge.json` (here `TESMP_SECRET`) doesn't match `secret` in the mod config |
+| Bridge log: "Refused connection … is not in the bridge config" | The mod's `serverId` has no entry under `servers` in `bridge.json` |
+| Mod log: "Could not connect to bridge at …: UnresolvedAddress / ConnectException" | The containers aren't on the same network, or `bridgeUrl` doesn't match the bridge's service/container name and `listen.port` |
+| Bridge log: "Can't listen on …" | Something else uses that port. Change `listen.port` in `bridge.json` and the port in `bridgeUrl` |
 | Messages appear as the bot, not the player | The bot is missing Manage Webhooks in that channel. Grant it and restart the bridge. |
 | Fluxer messages don't reach Minecraft | The bot needs View Channel and Read Message History. Check `channelId`. |

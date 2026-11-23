@@ -28,11 +28,16 @@
       "chatFormat": "**[{server}] {author}:** {text}",
       "eventFormat": "*{text}*",
       "minecraftLabel": "Fluxer",
-      "offlineNotice": "The Minecraft server is offline right now, so this message was not delivered."
+      "offlineNotice": "The Minecraft server is offline right now, so this message was not delivered.",
+      "offlineNoticeCooldownMinutes": 10
     }
   ],
   "commands": {
     "enabled": true,
-    "prefix": "!"
+    "prefix": "!",
+    "players": ["players", "online", "list"],
+    "playersOnline": "**{server}** — {count}/{max} online: {players}",
+    "playersNone": "**{server}** is online, but nobody is playing right now.",
+    "serverOffline": "**{server}** is offline."
   }
 }

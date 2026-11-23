@@ -70,26 +70,53 @@ public final class FluxerApi {
 	}
 
 	/**
-	 * Reuses a webhook with this name that the bot created earlier in the
-	 * channel, or creates one. Needs the Manage Webhooks permission.
+	 * Reuses an existing webhook with this name in the channel, or creates one.
+	 * Needs the Manage Webhooks permission.
 	 */
 	public Webhook getOrCreateWebhook(String channelId, String name, String botUserId) throws IOException, InterruptedException {
 		JsonElement list = request("GET", "/channels/" + channelId + "/webhooks", null, true);
-		if (list != null && list.isJsonArray()) {
-			for (JsonElement el : list.getAsJsonArray()) {
-				JsonObject hook = el.getAsJsonObject();
-				boolean sameName = name.equals(string(hook, "name"));
-				boolean ours = hook.has("user") && botUserId.equals(string(hook.getAsJsonObject("user"), "id"));
-				if (sameName && ours && hook.has("token")) {
-					return new Webhook(string(hook, "id"), string(hook, "token"));
-				}
-			}
+		Webhook existing = list != null && list.isJsonArray() ? pickWebhook(list.getAsJsonArray(), name, botUserId) : null;
+		if (existing != null) {
+			LOG.info("Reusing webhook \"{}\" in channel {}", name.strip(), channelId);
+			return existing;
 		}
 		JsonObject body = new JsonObject();
-		body.addProperty("name", name);
+		body.addProperty("name", name.strip());
 		JsonObject created = request("POST", "/channels/" + channelId + "/webhooks", body, true).getAsJsonObject();
-		LOG.info("Created webhook \"{}\" in channel {}", name, channelId);
+		LOG.info("Created webhook \"{}\" in channel {}", name.strip(), channelId);
 		return new Webhook(string(created, "id"), string(created, "token"));
+	}
+
+	/**
+	 * Picks the webhook to reuse from a channel's webhook list: one with the
+	 * given name that can be executed (has a token). A webhook the bot created
+	 * wins over one made by someone else, such as one created by hand in Fluxer.
+	 * Fluxer trims webhook names, so the comparison ignores surrounding whitespace.
+	 */
+	static Webhook pickWebhook(JsonArray hooks, String name, String botUserId) {
+		String wanted = name.strip();
+		Webhook other = null;
+		for (JsonElement el : hooks) {
+			if (!el.isJsonObject()) {
+				continue;
+			}
+			JsonObject hook = el.getAsJsonObject();
+			String id = string(hook, "id");
+			String token = string(hook, "token");
+			String hookName = string(hook, "name");
+			if (id == null || token == null || hookName == null || !wanted.equals(hookName.strip())) {
+				continue;
+			}
+			JsonElement user = hook.get("user");
+			boolean ours = user != null && user.isJsonObject() && botUserId.equals(string(user.getAsJsonObject(), "id"));
+			if (ours) {
+				return new Webhook(id, token);
+			}
+			if (other == null) {
+				other = new Webhook(id, token);
+			}
+		}
+		return other;
 	}
 
 	public void executeWebhook(Webhook webhook, String username, String avatarUrl, String content) throws IOException, InterruptedException {

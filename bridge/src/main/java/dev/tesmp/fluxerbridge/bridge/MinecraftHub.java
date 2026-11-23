@@ -108,8 +108,17 @@ public final class MinecraftHub extends WebSocketServer implements Sinks.Minecra
 			return;
 		}
 		BridgeConfig.Server server = hello.serverId() == null ? null : config.servers.get(hello.serverId());
-		if (server == null || hello.secret() == null || !constantTimeEquals(server.secret, hello.secret())) {
-			LOG.warn("Refused connection from {}: unknown server id or wrong secret (server id \"{}\")", describe(conn), hello.serverId());
+		if (server == null) {
+			LOG.warn("Refused connection from {}: server id \"{}\" is not in the bridge config. "
+					+ "Add it under \"servers\" in the bridge config (configured: {}), or change serverId in that server's config/fluxerbridge.json.",
+					describe(conn), hello.serverId(), config.servers.keySet());
+			reject(conn, "unknown server id or wrong secret");
+			return;
+		}
+		if (hello.secret() == null || !constantTimeEquals(server.secret, hello.secret())) {
+			LOG.warn("Refused connection from {}: wrong secret for server \"{}\". "
+					+ "servers.{}.secret in the bridge config must equal \"secret\" in that server's config/fluxerbridge.json.",
+					describe(conn), hello.serverId(), hello.serverId());
 			reject(conn, "unknown server id or wrong secret");
 			return;
 		}
@@ -143,6 +152,12 @@ public final class MinecraftHub extends WebSocketServer implements Sinks.Minecra
 	@Override
 	public void onError(WebSocket conn, Exception ex) {
 		if (conn == null) {
+			if (ex instanceof java.net.BindException) {
+				LOG.error("Can't listen on {}:{} ({}). Another program may be using the port; "
+						+ "change listen.host / listen.port in the bridge config (and bridgeUrl in the mod config to match).",
+						config.listen.host, config.listen.port, ex.getMessage());
+				return;
+			}
 			LOG.error("Minecraft hub error", ex);
 		} else {
 			LOG.warn("Connection error from {}: {}", describe(conn), ex.toString());

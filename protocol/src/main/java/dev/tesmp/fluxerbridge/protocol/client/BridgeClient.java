@@ -178,7 +178,9 @@ public final class BridgeClient implements AutoCloseable {
 						return;
 					}
 					if (err != null) {
-						LOG.warn("Could not connect to bridge: {}", rootMessage(err));
+						LOG.warn("Could not connect to bridge at {}: {}. Is the bridge running? If it uses another "
+								+ "host, container name or port, change bridgeUrl in config/fluxerbridge.json "
+								+ "and run /fluxerbridge reload.", uri, rootMessage(err));
 						scheduleReconnect();
 						return;
 					}
@@ -212,7 +214,8 @@ public final class BridgeClient implements AutoCloseable {
 			}
 			case Message.Reject reject -> {
 				rejected = true;
-				LOG.error("Bridge refused this server: {}. Check serverId and secret in the config.", reject.reason());
+				LOG.error("Bridge refused this server: {}. serverId and secret in config/fluxerbridge.json must match "
+						+ "an entry under \"servers\" in the bridge config; the bridge log says which one is wrong.", reject.reason());
 			}
 			case Message.Ping ping -> writeRaw(new Message.Pong(ping.time()));
 			case Message.Pong ignored -> lastPongAt = System.currentTimeMillis();

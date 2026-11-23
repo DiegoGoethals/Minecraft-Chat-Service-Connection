@@ -198,6 +198,35 @@ class RouterTest {
 	}
 
 	@Test
+	void playersCommandNamesAndRepliesAreConfigurable() {
+		config.commands.players = List.of("who");
+		config.commands.playersOnline = "{count} on {server}: {players}";
+		config.commands.serverOffline = "{server} is down";
+
+		router.onMessageCreate(userMessage("!players"));
+		assertEquals("!players", ((Message.Chat) toMinecraft.getFirst()).text(), "old name is now plain chat");
+
+		toMinecraft.clear();
+		router.onMessageCreate(userMessage("!WHO"));
+		Message.StatusRequest request = assertInstanceOf(Message.StatusRequest.class, toMinecraft.getFirst());
+		router.onMinecraftMessage("tesmp", new Message.Status(request.requestId(), List.of("Steve"), 20, "26.3"));
+		assertEquals("1 on TESMP: Steve", posts.getLast().content());
+
+		serverConnected = false;
+		router.onMessageCreate(userMessage("!who"));
+		assertEquals("TESMP is down", posts.getLast().content());
+	}
+
+	@Test
+	void offlineNoticeCooldownZeroPostsEveryTime() {
+		config.links.getFirst().offlineNoticeCooldownMinutes = 0;
+		serverConnected = false;
+		router.onMessageCreate(userMessage("anyone?"));
+		router.onMessageCreate(userMessage("hello??"));
+		assertEquals(2, posts.size());
+	}
+
+	@Test
 	void unknownCommandIsRelayedAsChat() {
 		router.onMessageCreate(userMessage("!hello"));
 		assertEquals("!hello", ((Message.Chat) toMinecraft.getFirst()).text());

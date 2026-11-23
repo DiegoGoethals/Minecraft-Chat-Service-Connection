@@ -51,7 +51,7 @@ class BridgeConfigTest {
 		String msg = e.getMessage();
 		assertTrue(msg.contains("fluxer.token"), msg);
 		assertTrue(msg.contains("too short"), msg);
-		assertTrue(msg.contains("not in servers"), msg);
+		assertTrue(msg.contains("not one of the configured servers"), msg);
 		assertTrue(msg.contains("numeric channel id"), msg);
 		assertTrue(msg.contains("style"), msg);
 	}

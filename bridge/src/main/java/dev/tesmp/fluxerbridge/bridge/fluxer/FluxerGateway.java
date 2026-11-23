@@ -310,7 +310,7 @@ public final class FluxerGateway implements AutoCloseable {
 		boolean fatal = false;
 		switch (code) {
 			case 4004 -> {
-				LOG.error("Fluxer rejected the bot token (4004). Check FLUXER_TOKEN.");
+				LOG.error("Fluxer rejected the bot token (4004). Check fluxer.token in the bridge config (or the environment variable it reads).");
 				fatal = true;
 				sessionId = null;
 			}
